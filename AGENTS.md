@@ -67,7 +67,7 @@ trunk fmt path/to/file
 │   ├── claude-code-review.yaml  # Automatic PR review
 │   └── devskim.yaml     # Microsoft security scanning
 ├── dependabot.yml       # Daily dependency updates
-└── CODEOWNERS          # @daveio owns all files
+└── CODEOWNERS           # @synmux owns all files
 
 .trunk/
 ├── trunk.yaml          # Linter orchestration config
