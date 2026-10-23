@@ -1,8 +1,8 @@
-# syn-version: 1789415892
 name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
+    # Optional: Only run on specific file changes
     # paths:
     #   - "src/**/*.ts"
     #   - "src/**/*.tsx"
@@ -10,26 +10,34 @@ on:
     #   - "src/**/*.jsx"
 permissions:
   contents: read
-  pull-requests: write
+  pull-requests: read
   issues: read
   id-token: write
 jobs:
   claude-review:
-    if: github.event.pull_request.user.login == 'synmux'
+    # Only review pull requests opened by someone with write access, from a
+    # branch in this repo: fork PRs get no secrets, so they could only fail.
+    # shortcut: OWNER/COLLABORATOR means write only on a personal-account repo;
+    # if the repo moves to an org, check the collaborator permission API instead.
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(fromJSON('["OWNER", "COLLABORATOR"]'), github.event.pull_request.author_association)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
+
       - name: Run Claude Code Review
         id: claude-review
-        uses: anthropics/claude-code-action@58985842b834ed26087302ba27d07bc24ca8697a # v1.0.244
+        uses: anthropics/claude-code-action@ae68417a745a5df4b2124873632bd73a2255e6f6 # v1.0.259
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # cannot be pinned :( workflow needs it to end in .git though CC accepts #ref
           plugin_marketplaces: https://github.com/anthropics/claude-code.git
           plugins: code-review@claude-code-plugins
           prompt: "/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}"
-          claude_args: --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+          claude_args: --allowedTools "mcp__github_inline_comment__create_inline_comment"
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
